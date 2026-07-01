@@ -14,7 +14,7 @@ STANDARD_PRIZES = ["1efc", "10efc", "50efc", "yutqazish", "yutqazish", "yutqazis
 async def wheel_menu(message: Message, state: FSMContext):
     await state.clear()  # Pul kiritishda adashib qolgan bo'lsa, holatni avtomat tozalaydi!
     user_id = message.from_user.id
-    MINI_APP_URL = "https://github.io"
+    MINI_APP_URL = "https://asilbekkovmiddinov-svg.github.io/EFC-Football-Bot/"
     
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
