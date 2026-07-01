@@ -8,31 +8,53 @@
     <script src="https://adsgram.ai"></script>
     <style>
         body { font-family: sans-serif; text-align: center; background: #1a1a2e; color: #fff; padding: 20px; margin: 0; }
-        .wheel-container { position: relative; width: 250px; height: 250px; margin: 30px auto; }
-        .wheel { width: 100%; height: 100%; border-radius: 50%; border: 5px solid #fff; background: conic-gradient(#ff2a5f 0% 16%, #ffb800 16% 33%, #00b8ff 33% 50%, #00ff66 50% 66%, #8a2be2 66% 83%, #ff6b6b 83% 100%); transition: transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99); }
-        .pointer { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 25px solid #fff; z-index: 10; }
-        button { background: #ff2a5f; color: white; border: none; padding: 15px 30px; font-size: 18px; border-radius: 25px; cursor: pointer; margin-top: 20px; font-weight: bold; width: 80%; }
-        button:disabled { background: #555; cursor: not-allowed; }
+        .wheel-container { position: relative; width: 280px; height: 280px; margin: 30px auto; }
+        .wheel { width: 100%; height: 100%; border-radius: 50%; border: 5px solid #fff; background: conic-gradient(#ff2a5f 0% 16.6%, #ffb800 16.6% 33.3%, #00b8ff 33.3% 50%, #00ff66 50% 66.6%, #8a2be2 66.6% 83.3%, #ff6b6b 83.3% 100%); transition: transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99); position: relative; overflow: hidden; }
+        .pointer { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 25px solid #fff; z-index: 10; }
+        
+        /* G'ildirak ichidagi matnlar pozitsiyasi */
+        .label { position: absolute; width: 50%; height: 30px; top: 50%; left: 50%; transform-origin: 0% 0%; text-align: right; padding-right: 20px; box-sizing: border-box; font-weight: bold; font-size: 14px; text-shadow: 1px 1px 2px #000; }
+        .l1 { transform: rotate(30deg) translate(-50%, -50%); }
+        .l2 { transform: rotate(90deg) translate(-50%, -50%); }
+        .l3 { transform: rotate(150deg) translate(-50%, -50%); }
+        .l4 { transform: rotate(210deg) translate(-50%, -50%); }
+        .l5 { transform: rotate(270deg) translate(-50%, -50%); }
+        .l6 { transform: rotate(330deg) translate(-50%, -50%); }
+
+        button { background: #ff2a5f; color: white; border: none; padding: 15px 30px; font-size: 18px; border-radius: 25px; cursor: pointer; margin-top: 20px; font-weight: bold; width: 85%; box-shadow: 0 4px 15px rgba(255, 42, 95, 0.4); }
+        button:disabled { background: #555; cursor: not-allowed; box-shadow: none; }
     </style>
 </head>
 <body>
     <h2>🎡 OMAD G'ILDIRAGI 🎡</h2>
     <p>G'ildirakni aylantirish uchun videoni oxirigacha ko'ring!</p>
+    
     <div class="wheel-container">
         <div class="pointer"></div>
-        <div class="wheel" id="wheel"></div>
+        <div class="wheel" id="wheel">
+            <!-- Sektorlardagi yutuqlar matni -->
+            <div class="label l1">1 EFC</div>
+            <div class="label l2">10 EFC</div>
+            <div class="label l3">50 EFC</div>
+            <div class="label l4">250 EFC</div>
+            <div class="label l5">130 C</div>
+            <div class="label l6">2000 C</div>
+        </div>
     </div>
     <button id="spinBtn" onclick="showAd()">📺 Video ko'rish va Aylantirish</button>
-      <script>
+    <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // ⚠️ DIQQAT: "YOUR_BLOCK_ID_HERE" o'rniga AdsGram'dan olgan haqiqiy block-id kodini yozing!
+        // ⚠️ DIQQAT: "YOUR_BLOCK_ID_HERE" o'rniga AdsGram panelidan olgan block-id kodini yozing!
         const AdController = window.Adsgram.init({ blockId: "YOUR_BLOCK_ID_HERE" });
 
         function showAd() {
             document.getElementById("spinBtn").disabled = true;
+            
+            // AdsGram video reklamasini ishga tushirish
             AdController.show().then((result) => {
+                // Video muvaffaqiyatli ko'rilsa, g'ildirak aylanadi
                 startSpin();
             }).catch((error) => {
                 alert("Reklama yuklanmadi yoki oxirigacha ko'rilmadi! Qayta urining.");
@@ -42,11 +64,15 @@
 
         function startSpin() {
             const wheel = document.getElementById("wheel");
+            // Tasodifiy burchak va kamida 4 marta to'liq aylanish (1440 daraja)
             const randomDegrees = Math.floor(Math.random() * 360) + 1440; 
             wheel.style.transform = `rotate(${randomDegrees}deg)`;
 
+            // G'ildirak 4 soniya aylanadi, keyin natija botga ketadi
             setTimeout(() => {
+                // Botga muvaffaqiyatli aylanganlik haqida signal yuborish
                 tg.sendData(JSON.stringify({ action: "wheel_spin_success" }));
+                // Mini App oynasini avtomat yopish
                 tg.close();
             }, 4100);
         }
