@@ -3,82 +3,11 @@ import random
 import datetime
 import json
 from aiogram import Router, F
-from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
-from aiogram.fsm.context import FSMContext
+from aiogram.types import Message
 from database import DB_NAME
 
 router = Router()
 STANDARD_PRIZES = ["1efc", "10efc", "50efc", "yutqazish", "yutqazish", "yutqazish"]
-
-@router.message(F.text == "🎡 Kunlik G'ildirak")
-async def wheel_menu(message: Message, state: FSMContext):
-    await state.clear()
-    user_id = message.from_user.id
-    MINI_APP_URL = "https://asilbekkovmiddinov-svg.github.io/EFC-Football-Bot/"
-    
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute("SELECT last_wheel_time, video_spins_count, last_video_spin_date FROM users WHERE user_id = ?", (user_id,))
-    row = cursor.fetchone()
-    
-    if not row:
-        cursor.execute("INSERT INTO users (user_id, username) VALUES (?, ?)", (user_id, message.from_user.username))
-        conn.commit()
-        row = (None, 0, None)
-        
-    last_free_time, video_count, last_video_date = row
-    now = datetime.datetime.now()
-    today_str = now.date().isoformat()
-    
-    if last_video_date != today_str:
-        video_count = 0
-        cursor.execute("UPDATE users SET video_spins_count = 0, last_video_spin_date = ? WHERE user_id = ?", (today_str, user_id))
-        conn.commit()
-
-    can_spin_free = True
-    free_status = "✅ Mavjud"
-    if last_free_time:
-        last_time = datetime.datetime.fromisoformat(last_free_time)
-        if now.date() == last_time.date():
-            can_spin_free = False
-            free_status = "❌ Bugun foydalanilgan (Ertaga ochiladi)"
-
-    can_spin_video = False
-    video_status = ""
-    
-    if not can_spin_free:
-        if video_count < 5:
-            if last_video_date == today_str and last_free_time:
-                last_any_spin = datetime.datetime.fromisoformat(last_free_time)
-                if now - last_any_spin >= datetime.timedelta(hours=1):
-                    can_spin_video = True
-                    video_status = f"✅ Video ko'rish mavjud ({video_count}/5)"
-                else:
-                    remaining = datetime.timedelta(hours=1) - (now - last_any_spin)
-                    minutes = int(remaining.total_seconds() // 60)
-                    video_status = f"⏳ Video {minutes} daqiqadan keyin ochiladi ({video_count}/5)"
-            else:
-                can_spin_video = True
-                video_status = f"✅ Video ko'rish mavjud ({video_count}/5)"
-        else:
-            video_status = "❌ Bugungi barcha 5 ta video ko'rib bo'lindi"
-
-    text = (
-        f"🎡 **Omad G'ildiragi bo'limi**\n\n"
-        f"🎁 Bepul aylantirish (1 kunda 1ta): {free_status}\n"
-        f"📺 Reklama orqali (Kuniga 5ta / 1 soatda 1ta): {video_status}\n\n"
-        f"ℹ️ Tizimda 15k, 30k va 60k global aylanishlarga super yutuqlar saqlangan!"
-    )
-    
-    buttons = []
-    if can_spin_free:
-        buttons.append([InlineKeyboardButton(text="🎰 1 kunlik Bepul aylantirish", web_app=WebAppInfo(url=MINI_APP_URL))])
-    elif can_spin_video:
-        buttons.append([InlineKeyboardButton(text="📺 Video ko'rib aylantirish (AdsGram)", web_app=WebAppInfo(url=MINI_APP_URL))])
-        
-    kb = InlineKeyboardMarkup(inline_keyboard=buttons)
-    conn.close()
-    await message.answer(text, reply_markup=kb, parse_mode="Markdown")
 
 @router.message(F.web_app_data)
 async def handle_mini_app_data(message: Message):
@@ -90,16 +19,19 @@ async def handle_mini_app_data(message: Message):
         
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
+        
         cursor.execute("SELECT last_wheel_time, video_spins_count, last_video_spin_date FROM users WHERE user_id = ?", (user_id,))
         row = cursor.fetchone()
         last_free_time, video_count, last_video_date = row if row else (None, 0, None)
         
-        if last_video_date != today_str: video_count = 0
+        if last_video_date != today_str:
+            video_count = 0
 
         is_free_spin = True
         if last_free_time:
             last_time = datetime.datetime.fromisoformat(last_free_time)
-            if now.date() == last_time.date(): is_free_spin = False
+            if now.date() == last_time.date():
+                is_free_spin = False
 
         now_str = now.isoformat()
         if is_free_spin:
