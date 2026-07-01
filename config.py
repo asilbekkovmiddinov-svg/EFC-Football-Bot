@@ -1,0 +1,13 @@
+# config.py
+import os
+
+BOT_TOKEN = "8758382660:AAEGWeCeXFMHNwmSnePsWDL9xWt3LW1BH2I"
+ADMIN_ID = 1678146043
+KANAL_ID = -1001908315496
+KARTA_RAQAM = "9860 3501 0897 5409"
+KARTA_EGA_SI = "Xusanova M"
+
+# Komissiyalar
+P2P_COMMISSION = 0.025  # 2.5% har ikki tomondan
+MATCH_COMMISSION = 0.15  # 15% g'olibdan
+BILET_P2P_COMMISSION = 0.05  # Bilet savdosida 5%
