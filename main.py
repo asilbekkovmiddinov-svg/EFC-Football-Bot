@@ -24,10 +24,12 @@ async def main():
     bot = Bot(token=BOT_TOKEN)
     dp = Dispatcher()
     
-    dp.include_router(wallet.router)
+    # ⚠️ DIQQAT: Routerlar tartibi juda muhim! 
+    # Birinchi matnli tugmalarni tozalaydigan routerlar turishi shart
     dp.include_router(wheel.router)
     dp.include_router(p2p.router)
     dp.include_router(match.router)
+    dp.include_router(wallet.router) # Wallet oxirida turishi shart!
     
     @dp.message(F.text == "/start")
     async def cmd_start(message):
