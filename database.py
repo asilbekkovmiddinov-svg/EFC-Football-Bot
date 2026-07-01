@@ -1,13 +1,12 @@
-# database.py
 import sqlite3
 
-DB_NAME = "efc_system.db"
+DB_NAME = "/data/efc_system.db"
 
 def init_db():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     
-    # Foydalanuvchilar jadvali
+    # Foydalanuvchilar jadvali (Kunlik 5 ta video hisoblagichi bilan)
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS users (
         user_id INTEGER PRIMARY KEY,
@@ -15,7 +14,9 @@ def init_db():
         balans_som REAL DEFAULT 0,
         balans_efc REAL DEFAULT 0,
         balans_coin INTEGER DEFAULT 0,
-        last_wheel_time TEXT
+        last_wheel_time TEXT,
+        video_spins_count INTEGER DEFAULT 0,
+        last_video_spin_date TEXT
     )''')
     
     # Balans buyurtmalari (Cheklar)
@@ -69,7 +70,6 @@ def init_db():
     conn.commit()
     conn.close()
 
-# Bazani ishga tushirish funksiyasi
 if __name__ == "__main__":
     init_db()
-  
+    
