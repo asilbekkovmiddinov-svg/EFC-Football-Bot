@@ -1,98 +1,154 @@
-<!DOCTYPE html>
-<html lang="uz">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Omad G'ildiragi</title>
-    <script src="https://telegram.org"></script>
-    <script src="https://adsgram.ai"></script>
-    <style>
-        body { font-family: sans-serif; text-align: center; background: #1a1a2e; color: #fff; padding: 15px; margin: 0; overflow-y: auto; }
-        .main-wrapper { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; min-height: 100vh; padding-bottom: 30px; }
-        .wheel-container { position: relative; width: 280px; height: 280px; margin: 20px auto; }
+import sqlite3
+import random
+import datetime
+import json
+from aiogram import Router, F
+from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
+from aiogram.fsm.context import FSMContext
+from database import DB_NAME
+
+router = Router()
+STANDARD_PRIZES = ["1efc", "10efc", "50efc", "yutqazish", "yutqazish", "yutqazish"]
+
+@router.message(F.text == "🎡 Kunlik G'ildirak")
+async def wheel_menu(message: Message, state: FSMContext):
+    await state.clear()
+    user_id = message.from_user.id
+    MINI_APP_URL = "https://asilbekkovmiddinov-svg.github.io/EFC-Football-Bot/"
+    
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("SELECT last_wheel_time, video_spins_count, last_video_spin_date FROM users WHERE user_id = ?", (user_id,))
+    row = cursor.fetchone()
+    
+    if not row:
+        cursor.execute("INSERT INTO users (user_id, username) VALUES (?, ?)", (user_id, message.from_user.username))
+        conn.commit()
+        row = (None, 0, None)
         
-        /* 12 ta teng sektor (har biri 30 darajadan) - Yutuq va Yutqazish navbatma-navbat */
-        .wheel { width: 100%; height: 100%; border-radius: 50%; border: 5px solid #fff; background: conic-gradient(#ff2a5f 0deg 30deg, #333333 30deg 60deg, #ffb800 60deg 90deg, #333333 90deg 120deg, #00b8ff 120deg 150deg, #333333 150deg 180deg, #00ff66 180deg 210deg, #333333 210deg 240deg, #8a2be2 240deg 270deg, #333333 270deg 300deg, #ff6b6b 300deg 330deg, #333333 330deg 360deg); transition: transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99); position: relative; overflow: hidden; }
-        .pointer { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 25px solid #fff; z-index: 10; }
+    last_free_time, video_count, last_video_date = row
+    now = datetime.datetime.now()
+    today_str = now.date().isoformat()
+    
+    if last_video_date != today_str:
+        video_count = 0
+        cursor.execute("UPDATE users SET video_spins_count = 0, last_video_spin_date = ? WHERE user_id = ?", (today_str, user_id))
+        conn.commit()
+
+    can_spin_free = True
+    free_status = "✅ Mavjud"
+    if last_free_time:
+        last_time = datetime.datetime.fromisoformat(last_free_time)
+        if now.date() == last_time.date():
+            can_spin_free = False
+            free_status = "❌ Bugun foydalanilgan (Ertaga ochiladi)"
+
+    can_spin_video = False
+    video_status = ""
+    
+    if not can_spin_free:
+        if video_count < 5:
+            if last_video_date == today_str and last_free_time:
+                last_any_spin = datetime.datetime.fromisoformat(last_free_time)
+                if now - last_any_spin >= datetime.timedelta(hours=1):
+                    can_spin_video = True
+                    video_status = f"✅ Video ko'rish mavjud ({video_count}/5)"
+                else:
+                    remaining = datetime.timedelta(hours=1) - (now - last_any_spin)
+                    minutes = int(remaining.total_seconds() // 60)
+                    video_status = f"⏳ Video {minutes} daqiqadan keyin ochiladi ({video_count}/5)"
+            else:
+                can_spin_video = True
+                video_status = f"✅ Video ko'rish mavjud ({video_count}/5)"
+        else:
+            video_status = "❌ Bugungi barcha 5 ta video ko'rib bo'lindi"
+
+    text = (
+        f"🎡 **Omad G'ildiragi bo'limi**\n\n"
+        f"🎁 Bepul aylantirish (1 kunda 1ta): {free_status}\n"
+        f"📺 Reklama orqali (Kuniga 5ta / 1 soatda 1ta): {video_status}\n\n"
+        f"ℹ️ Tizimda 15k, 30k va 60k global aylanishlarga super yutuqlar saqlangan!"
+    )
+    
+    buttons = []
+    if can_spin_free:
+        buttons.append([InlineKeyboardButton(text="🎰 1 kunlik Bepul aylantirish", web_app=WebAppInfo(url=MINI_APP_URL))])
+    elif can_spin_video:
+        buttons.append([InlineKeyboardButton(text="📺 Video ko'rib aylantirish (AdsGram)", web_app=WebAppInfo(url=MINI_APP_URL))])
         
-        /* 12 ta sektor uchun matnlarni markazdan burchak bo'yicha aniq to'g'rilash */
-        .label { position: absolute; width: 50%; height: 20px; top: 50%; left: 50%; transform-origin: 0% 50%; text-align: right; padding-right: 12px; box-sizing: border-box; font-weight: bold; font-size: 10px; text-shadow: 1px 1px 2px #000; line-height: 20px; }
-        .l1 { transform: rotate(15deg) translate(-50%, -50%); }
-        .l2 { transform: rotate(45deg) translate(-50%, -50%); color: #888; }
-        .l3 { transform: rotate(75deg) translate(-50%, -50%); }
-        .l4 { transform: rotate(105deg) translate(-50%, -50%); color: #888; }
-        .l5 { transform: rotate(135deg) translate(-50%, -50%); }
-        .l6 { transform: rotate(165deg) translate(-50%, -50%); color: #888; }
-        .l7 { transform: rotate(195deg) translate(-50%, -50%); }
-        .l8 { transform: rotate(225deg) translate(-50%, -50%); color: #888; }
-        .l9 { transform: rotate(255deg) translate(-50%, -50%); }
-        .l10 { transform: rotate(285deg) translate(-50%, -50%); color: #888; }
-        .l11 { transform: rotate(315deg) translate(-50%, -50%); }
-        .l12 { transform: rotate(345deg) translate(-50%, -50%); color: #888; }
+    kb = InlineKeyboardMarkup(inline_keyboard=buttons)
+    conn.close()
+    await message.answer(text, reply_markup=kb, parse_mode="Markdown")
 
-        button { background: #ff2a5f; color: white; border: none; padding: 14px 20px; font-size: 16px; border-radius: 25px; cursor: pointer; margin-top: 15px; font-weight: bold; width: 85%; box-shadow: 0 4px 15px rgba(255, 42, 95, 0.4); z-index: 5; }
-        button:disabled { background: #555; cursor: not-allowed; box-shadow: none; }
-    </style>
-</head>
-<body>
-    <div class="main-wrapper">
-        <h2>🎡 OMAD G'ILDIRAGI 🎡</h2>
-        <p style="font-size: 13px; margin: 5px 0;">Videoni ko'rib g'ildirakni aylantiring!</p>
+@router.message(F.web_app_data)
+async def handle_mini_app_data(message: Message):
+    data = json.loads(message.web_app_data.data)
+    if data.get("action") == "wheel_spin_success":
+        user_id = message.from_user.id
+        now = datetime.datetime.now()
+        today_str = now.date().isoformat()
         
-        <div class="wheel-container">
-            <div class="pointer"></div>
-            <div class="wheel" id="wheel">
-                <!-- Navbatma-navbat joylashgan aniq sektorlar matni -->
-                <div class="label l1">1 EFC</div>
-                <div class="label l2">0 BALANS</div>
-                <div class="label l3">10 EFC</div>
-                <div class="label l4">0 BALANS</div>
-                <div class="label l5">50 EFC</div>
-                <div class="label l6">0 BALANS</div>
-                <div class="label l7">250 EFC</div>
-                <div class="label l8">0 BALANS</div>
-                <div class="label l9">130 COIN</div>
-                <div class="label l10">0 BALANS</div>
-                <div class="label l11">2000 COIN</div>
-                <div class="label l12">0 BALANS</div>
-            </div>
-        </div>
-        <button id="spinBtn" onclick="showAd()">📺 Video ko'rish va Aylantirish</button>
-    </div>
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand(); // Mini App oynasini telefon ekraniga to'liq yoyish
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT last_wheel_time, video_spins_count, last_video_spin_date FROM users WHERE user_id = ?", (user_id,))
+        row = cursor.fetchone()
+        last_free_time, video_count, last_video_date = row if row else (None, 0, None)
+        
+        if last_video_date != today_str: video_count = 0
 
-        // ⚠️ DIQQAT: "YOUR_BLOCK_ID_HERE" o'rniga AdsGram panelidan olgan block-id kodini yozing!
-        const AdController = window.Adsgram.init({ blockId: "YOUR_BLOCK_ID_HERE" });
+        is_free_spin = True
+        if last_free_time:
+            last_time = datetime.datetime.fromisoformat(last_free_time)
+            if now.date() == last_time.date(): is_free_spin = False
 
-        function showAd() {
-            document.getElementById("spinBtn").disabled = true;
-            
-            // AdsGram video reklamasini ishga tushirish
-            AdController.show().then((result) => {
-                // Video muvaffaqiyatli ko'rilsa, g'ildirak aylanadi
-                startSpin();
-            }).catch((error) => {
-                alert("Reklama yuklanmadi yoki oxirigacha ko'rilmadi! Qayta urining.");
-                document.getElementById("spinBtn").disabled = false;
-            });
-        }
-
-        function startSpin() {
-            const wheel = document.getElementById("wheel");
-            // 12 ta sektorga mos ravishda tasodifiy burchak ostida kamida 4 marta aylantirish
-            const randomDegrees = Math.floor(Math.random() * 360) + 1440; 
-            wheel.style.transform = `rotate(${randomDegrees}deg)`;
-
-            // G'ildirak aylanganda natija 4 soniyadan keyin botga ketadi
-            setTimeout(() => {
-                // Botga muvaffaqiyatli aylanganlik haqida signal yuborish
-                tg.sendData(JSON.stringify({ action: "wheel_spin_success" }));
-                // Mini App oynasini avtomat yopish
-                tg.close();
-            }, 4100);
-        }
-    </script>
-</body>
-</html>
+        now_str = now.isoformat()
+        if is_free_spin:
+            cursor.execute("UPDATE users SET last_wheel_time = ? WHERE user_id = ?", (now_str, user_id))
+        else:
+            if video_count >= 5:
+                conn.close()
+                return await message.answer("❌ Bugun barcha 5 ta video ko'rish imkoniyatingizdan foydalanib bo'ldingiz!")
+            video_count += 1
+            cursor.execute("UPDATE users SET video_spins_count = ?, last_video_spin_date = ?, last_wheel_time = ? WHERE user_id = ?", 
+                           (video_count, today_str, now_str, user_id))
+        
+        cursor.execute("UPDATE wheel_stats SET total_spins = total_spins + 1 WHERE id = 1")
+        cursor.execute("SELECT total_spins FROM wheel_stats WHERE id = 1")
+        total_spins = cursor.fetchone()
+        
+        prize_text = ""
+        if total_spins == 60000:
+            prize_text = "🎁 KATTA SUPER YUTUQ! 2000 Coin"
+            cursor.execute("UPDATE users SET balans_coin = balans_coin + 2000 WHERE user_id = ?", (user_id,))
+        elif total_spins == 30000:
+            prize_text = "🎁 OMADLI YUTUQ! 130 Coin"
+            cursor.execute("UPDATE users SET balans_coin = balans_coin + 130 WHERE user_id = ?", (user_id,))
+        elif total_spins == 15000:
+            prize_text = "🎁 YUTUQ! 250 EFC"
+            cursor.execute("UPDATE users SET balans_efc = balans_efc + 250 WHERE user_id = ?", (user_id,))
+        else:
+            chosen = random.choice(STANDARD_PRIZES)
+            if chosen == "1efc":
+                prize_text = "1 EFC"
+                cursor.execute("UPDATE users SET balans_efc = balans_efc + 1 WHERE user_id = ?", (user_id,))
+            elif chosen == "10efc":
+                prize_text = "10 EFC"
+                cursor.execute("UPDATE users SET balans_efc = balans_efc + 10 WHERE user_id = ?", (user_id,))
+            elif chosen == "50efc":
+                prize_text = "50 EFC"
+                cursor.execute("UPDATE users SET balans_efc = balans_efc + 50 WHERE user_id = ?", (user_id,))
+            else:
+                prize_text = "❌ Afsuski, bu safar yutqazdingiz (0 mukofot)"
+                
+        conn.commit()
+        conn.close()
+        
+        spin_type_msg = "1 kunlik Bepul urinish" if is_free_spin else f"📺 Video reklama ({video_count}/5)"
+        await message.answer(
+            f"🎉 **G'ildirak muvaffaqiyatli aylandi!**\n\n"
+            f"ℹ️ Aylanish turi: {spin_type_msg}\n"
+            f"📊 Tizimdagi umumiy aylanishlar: {total_spins:,}\n"
+            f"🎁 Sizning yutug'ingiz: **{prize_text}**",
+            parse_mode="Markdown"
+        )
+        
