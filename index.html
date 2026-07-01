@@ -45,16 +45,37 @@
             <div class="label l9">2000 COIN</div>
         </div>
     </div>
-    # database.py ichidagi yangilangan users jadvali qismi
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS users (
-        user_id INTEGER PRIMARY KEY,
-        username TEXT,
-        balans_som REAL DEFAULT 0,
-        balans_efc REAL DEFAULT 0,
-        balans_coin INTEGER DEFAULT 0,
-        last_wheel_time TEXT,
-        video_spins_count INTEGER DEFAULT 0,
-        last_video_spin_date TEXT
-    )''')
-    
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        // ⚠️ DIQQAT: "YOUR_BLOCK_ID_HERE" o'rniga AdsGram panelidan olgan block-id kodini yozing!
+        const AdController = window.Adsgram.init({ blockId: "YOUR_BLOCK_ID_HERE" });
+
+        function showAd() {
+            document.getElementById("spinBtn").disabled = true;
+            
+            AdController.show().then((result) => {
+                // Video oxirigacha ko'rilsa g'ildirak aylanadi
+                startSpin();
+            }).catch((error) => {
+                alert("Reklama yuklanmadi yoki to'liq ko'rilmadi! Qayta urining.");
+                document.getElementById("spinBtn").disabled = false;
+            });
+        }
+
+        function startSpin() {
+            const wheel = document.getElementById("wheel");
+            // 9 ta sektor bo'lgani uchun aylanish burchagini shunga moslashtiramiz
+            const randomDegrees = Math.floor(Math.random() * 360) + 1440; 
+            wheel.style.transform = `rotate(${randomDegrees}deg)`;
+
+            setTimeout(() => {
+                // Botga muvaffaqiyatli aylanganlik haqida signal yuborish
+                tg.sendData(JSON.stringify({ action: "wheel_spin_success" }));
+                tg.close();
+            }, 4100);
+        }
+    </script>
+</body>
+</html>
