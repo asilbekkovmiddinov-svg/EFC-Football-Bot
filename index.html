@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Omad G'ildiragi</title>
+    <!-- Telegram rasmiy veb-app skripti -->
     <script src="https://telegram.org"></script>
+    <!-- AdsGram-ning pullik va rasmiy JS kutubxonasi manzili -->
     <script src="https://adsgram.ai"></script>
     <style>
         body { font-family: sans-serif; text-align: center; background: #1a1a2e; color: #fff; padding: 15px; margin: 0; overflow-y: auto; }
@@ -35,13 +37,11 @@
 <body>
     <div class="main-wrapper">
         <h2>🎡 OMAD G'ILDIRAGI 🎡</h2>
-        <!-- Yuklanmoqda yozuvi o'rniga doimiy o'zgarmas matn yozdik (Muzlab qolmaydi) -->
         <p id="infoText" style="font-size: 13px; margin: 5px 0;">Omadingizni sinab ko'ring!</p>
         
         <div class="wheel-container">
             <div class="pointer"></div>
             <div class="wheel" id="wheel">
-                <!-- Barcha matnlar siz aytgandek YUTQAZISH so'ziga almashtirildi -->
                 <div class="label l1">1 EFC</div>
                 <div class="label l2">YUTQAZISH</div>
                 <div class="label l3">10 EFC</div>
@@ -57,7 +57,8 @@
             </div>
         </div>
         <button id="spinBtn" onclick="handleSpinAction()">🎰 Aylantirish</button>
-        <script>
+    </div>
+    <script>
         const tg = window.Telegram.WebApp;
         
         // Telegram muhitini ishga tushirish va oynani to'liq ekranga yoyish
@@ -67,7 +68,7 @@
         const infoText = document.getElementById("infoText");
         const spinBtn = document.getElementById("spinBtn");
 
-        // ⚠️ DIQQAT: "YOUR_BLOCK_ID_HERE" o'rniga AdsGram'dan olgan block-id kodini yozing!
+        // ⚠️ Pullik va haqiqiy AdsGram Block ID kodi (to'g'ri blockId formati bilan)
         const AdController = window.Adsgram.init({ blockId: "block-36799" });
 
         function handleSpinAction() {
@@ -78,7 +79,7 @@
                 infoText.innerText = "G'ildirak aylanmoqda...";
                 startSpin();
             }).catch((error) => {
-                // Reklama yuklanishida xato bo'lsa ham o'yin davom etadi
+                // Reklama yuklanishida xato bo'lsa ham o'yin qotib qolmasligi uchun aylanishni boshlaymiz
                 infoText.innerText = "G'ildirak aylanmoqda...";
                 startSpin();
             });
