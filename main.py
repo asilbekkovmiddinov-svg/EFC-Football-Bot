@@ -2,10 +2,10 @@ import asyncio
 import logging
 import sqlite3
 import os
-import random
+import json
 from aiogram import Bot, Dispatcher, F
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
-from fastapi import FastAPI
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo, Message
+from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
@@ -25,21 +25,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-YUTUQLAR = [
-    {"tur": "efc", "miqdor": 1, "matn": "1 EFC"},
-    {"tur": "yutqazish", "miqdor": 0, "matn": "YUTQAZISH ❌"},
-    {"tur": "efc", "miqdor": 10, "matn": "10 EFC"},
-    {"tur": "yutqazish", "miqdor": 0, "matn": "YUTQAZISH ❌"},
-    {"tur": "efc", "miqdor": 50, "matn": "50 EFC"},
-    {"tur": "yutqazish", "miqdor": 0, "matn": "YUTQAZISH ❌"},
-    {"tur": "efc", "miqdor": 250, "matn": "250 EFC"},
-    {"tur": "yutqazish", "miqdor": 0, "matn": "YUTQAZISH ❌"},
-    {"tur": "coin", "miqdor": 130, "matn": "130 COIN"},
-    {"tur": "yutqazish", "miqdor": 0, "matn": "YUTQAZISH ❌"},
-    {"tur": "coin", "miqdor": 2000, "matn": "2000 COIN"},
-    {"tur": "yutqazish", "miqdor": 0, "matn": "YUTQAZISH ❌"}
-]
-
 @app.get("/", response_class=HTMLResponse)
 async def handle_index_html():
     try:
@@ -47,36 +32,6 @@ async def handle_index_html():
             return f.read()
     except FileNotFoundError:
         return "<h1>404: index.html topilmadi!</h1>"
-
-@app.get("/spin-reward")
-async def spin_reward(user_id: int):
-    """Saytdan kelgan to'g'ridan-to'g'ri API so'rovi"""
-    if not user_id:
-        return {"status": "error", "message": "ID xato"}
-        
-    yutuq = random.choice(YUTUQLAR)
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    
-    if yutuq["tur"] == "efc":
-        cursor.execute("UPDATE users SET balans_efc = balans_efc + ? WHERE user_id = ?", (yutuq["miqdor"], user_id))
-        msg = f"🎉 Omad keldi! Sizga **{yutuq['matn']}** taqdim etildi va balansingizga qo'shildi!"
-    elif yutuq["tur"] == "coin":
-        cursor.execute("UPDATE users SET balans_coin = balans_coin + ? WHERE user_id = ?", (yutuq["miqdor"], user_id))
-        msg = f"🎉 Omad keldi! Sizga **{yutuq['matn']}** taqdim etildi va balansingizga qo'shildi!"
-    else:
-        msg = "😔 Afsuski, g'ildirakda **YUTQAZISH** chiqdi. Keyingi safar albatta omad kulib boqadi!"
-        
-    conn.commit()
-    conn.close()
-    
-    # Bot orqali foydalanuvchiga darhol Telegramda xabar yuboramiz
-    try:
-        await bot_instance.send_message(chat_id=user_id, text=msg, parse_mode="Markdown")
-    except Exception as e:
-        logging.error(f"Xabar yuborishda xato: {e}")
-        
-    return {"status": "success", "message": "Natija saqlandi!"}
 
 def main_menu_keyboard(user_id):
     buttons = [
@@ -98,6 +53,34 @@ async def start_telegram_bot():
     dp.include_router(match.router)
     dp.include_router(wallet.router)
     
+    # ⚠️ DIQQAT: Boya g'ildirak yopilganda yuborgan ma'lumotni tutuvchi va balans qo'shuvchi asosiy datchik!
+    @dp.message(F.web_app_data)
+    async def web_app_callback(message: Message):
+        user_id = message.from_user.id
+        data_text = message.web_app_data.data
+        
+        if "wheel_spin_success" in data_text:
+            import random
+            YUTUQLAR = [
+                {"tur": "efc", "miqdor": 10, "matn": "10 EFC"},
+                {"tur": "efc", "miqdor": 50, "matn": "50 EFC"},
+                {"tur": "efc", "miqdor": 250, "matn": "250 EFC"},
+                {"tur": "coin", "miqdor": 130, "matn": "130 COIN"},
+                {"tur": "coin", "miqdor": 2000, "matn": "2000 COIN"}
+            ]
+            yutuq = random.choice(YUTUQLAR)
+            
+            conn = sqlite3.connect(DB_NAME)
+            cursor = conn.cursor()
+            if yutuq["tur"] == "efc":
+                cursor.execute("UPDATE users SET balans_efc = balans_efc + ? WHERE user_id = ?", (yutuq["miqdor"], user_id))
+            else:
+                cursor.execute("UPDATE users SET balans_coin = balans_coin + ? WHERE user_id = ?", (yutuq["miqdor"], user_id))
+            conn.commit()
+            conn.close()
+            
+            await message.answer(f"🎉 G'ildirak muvaffaqiyatli aylandi! Sizga **{yutuq['matn']}** taqdim etildi va hisobingizga qo'shildi!", parse_mode="Markdown")
+
     @dp.message(F.text == "/start")
     async def cmd_start(message):
         user_id = message.from_user.id
@@ -126,7 +109,7 @@ async def start_telegram_bot():
         
         await message.answer(
             f"👋 Salom, {full_name}!\neFootball EFC ekotizim botiga xush kelibsiz.\n\n"
-            f"🎡 Omad g'ildiragini aylantirish uchun pastdagi yangi **'🎡 Omad g'ildiragi'** tugmasini bosing!",
+            f"🎡 Omad g'ildiragini aylantirish uchun pastdagi **'🎡 Omad g'ildiragi'** tugmasini bosing!",
             reply_markup=main_menu_keyboard(user_id)
         )
 
