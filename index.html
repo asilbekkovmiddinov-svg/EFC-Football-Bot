@@ -55,4 +55,42 @@
         </div>
         <button id="spinBtn" onclick="handleSpinAction()">🎰 Aylantirish</button>
     </div>
-    
+    <script>
+        const tg = window.Telegram.WebApp;
+        
+        // Telegram muhitini ishga tushirish va oynani to'liq ekranga yoyish
+        tg.ready();
+        tg.expand();
+
+        const infoText = document.getElementById("infoText");
+        const spinBtn = document.getElementById("spinBtn");
+
+        function handleSpinAction() {
+            // Tugmani o'chirib qo'yamiz va matnni yangilaymiz
+            spinBtn.disabled = true;
+            infoText.innerText = "G'ildirak aylanmoqda, omad...";
+            
+            // Reklama to'siqlarisiz to'g'ridan-to'g'ri aylanishni boshlaymiz
+            startSpin();
+        }
+
+        function startSpin() {
+            const wheel = document.getElementById("wheel");
+            // 12 ta sektorga mos ravishda kamida 4 marta to'liq aylantirish
+            const randomDegrees = Math.floor(Math.random() * 360) + 1440; 
+            wheel.style.transform = `rotate(${randomDegrees}deg)`;
+
+            // 4.1 soniyadan keyin natijani Telegram botiga yuboramiz
+            setTimeout(() => {
+                // Botga muvaffaqiyatli aylanganlik signalini yuborish
+                tg.sendData(JSON.stringify({ action: "wheel_spin_success" }));
+                
+                // Oynani avtomatik yopish
+                setTimeout(() => {
+                    tg.close();
+                }, 500);
+            }, 4100);
+        }
+    </script>
+</body>
+</html>
