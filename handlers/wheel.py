@@ -12,7 +12,7 @@ STANDARD_PRIZES = ["1efc", "10efc", "50efc", "0 (Yutqazish)"]
 @router.message(F.text == "🎡 Kunlik G'ildirak")
 async def wheel_menu(message: Message):
     # TAYYOR AMVERA HAVOLASI SHU YERGA YOZILDI
-    MINI_APP_URL = "https://amvera-jocker7005-run-yangi-football.amvera.io"
+    MINI_APP_URL = "https://asilbekkovmiddinov-svg.github.io/EFC-Football-Bot/"
     
     text = (
         f"🎡 **Omad G'ildiragi (Mini App)**\n\n"
