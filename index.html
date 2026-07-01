@@ -10,7 +10,8 @@
         .main-wrapper { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; min-height: 100vh; padding-bottom: 30px; }
         .wheel-container { position: relative; width: 280px; height: 280px; margin: 20px auto; }
         
-        .wheel { width: 100%; height: 100%; border-radius: 50%; border: 5px solid #fff; background: conic-gradient(#ff2a5f 0deg 30deg, #333333 30deg 60deg, #ffb800 60deg 90deg, #333333 90deg 120deg, #00b8ff 120deg 150deg, #333333 150deg 180deg, #00ff66 180deg 210deg, #333333 210deg 240deg, #8a2be2 240deg 270deg, #333333 270deg 300deg, #ff6b6b 300deg 330deg, #333333 330deg 360deg); position: relative; overflow: hidden; transform: rotate(0deg); }
+        /* ⚠️ DIQQAT: transition xususiyati shu yerga majburiy qo'shildi, endi 4 soniya silliq aylanadi! */
+        .wheel { width: 100%; height: 100%; border-radius: 50%; border: 5px solid #fff; background: conic-gradient(#ff2a5f 0deg 30deg, #333333 30deg 60deg, #ffb800 60deg 90deg, #333333 90deg 120deg, #00b8ff 120deg 150deg, #333333 150deg 180deg, #00ff66 180deg 210deg, #333333 210deg 240deg, #8a2be2 240deg 270deg, #333333 270deg 300deg, #ff6b6b 300deg 330deg, #333333 330deg 360deg); position: relative; overflow: hidden; transform: rotate(0deg); transition: transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99); }
         .pointer { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 25px solid #fff; z-index: 10; }
         
         .label { position: absolute; width: 50%; height: 20px; top: calc(50% - 10px); left: 50%; transform-origin: 0% 50%; text-align: right; padding-right: 15px; box-sizing: border-box; font-weight: bold; font-size: 10px; text-shadow: 1px 1px 2px #000; }
@@ -53,8 +54,8 @@
                 <div class="label l12">YUTQAZISH</div>
             </div>
         </div>
-        <!-- 🎰 Tugma bosilganda JavaScript datchigini to'g'ridan-to'g'ri chaqiruvchi buyruq -->
-        <button id="spinBtn" onclick="executeSpinAnimation()">🎰 Aylantirish</button>
+        <!-- Tugma bosilganda animatsiya funksiyasini chaqiramiz -->
+        <button id="spinBtn" onclick="startSpinningAction()">🎰 Aylantirish</button>
     </div>
     <script>
         const tg = window.Telegram.WebApp;
@@ -67,20 +68,16 @@
         const spinBtn = document.getElementById("spinBtn");
         const wheel = document.getElementById("wheel");
 
-        // Bosish (click) buyrug'i to'g'ridan-to'g'ri shu funksiyaga bog'landi
-        function executeSpinAnimation() {
+        function startSpinningAction() {
             // Tugmani qayta bosilmasligi uchun o'chiramiz
             spinBtn.disabled = true;
             infoText.innerText = "G'ildirak aylanmoqda, omad...";
 
-            // CSS transformatsiya animatsiyasini qo'shamiz (4 soniya silliq aylanish)
-            wheel.style.transition = "transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)";
-            
             // Tasodifiy burchak ostida kamida 4 marta to'liq aylantirish mexanikasi
             const randomDegrees = Math.floor(Math.random() * 360) + 1440; 
             wheel.style.transform = `rotate(${randomDegrees}deg)`;
 
-            // 4.1 soniyadan keyin aylanish to'xtaydi va natija botga ketadi
+            // 4 soniya aylanish animatsiyasi tugagach, natijani botga yuboramiz
             setTimeout(() => {
                 // Telegram botiga aylanish muvaffaqiyatli yakunlanganlik signalini yuboramiz
                 tg.sendData(JSON.stringify({ action: "wheel_spin_success" }));
