@@ -135,45 +135,49 @@
     <button id="spinBtn" onclick="startSpinning()">🎰 Aylantirish</button>
 
     <script>
-        // Telegram WebApp obyektini xavfsiz chaqirish
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
 
-        const wheel = document.getElementById("wheel");
-        const spinBtn = document.getElementById("spinBtn");
         const infoText = document.getElementById("infoText");
+        const spinBtn = document.getElementById("spinBtn");
+        const wheel = document.getElementById("wheel");
 
-        function startSpinning() {
+        function executeSpinAnimation() {
             spinBtn.disabled = true;
-            infoText.innerText = "Aylanmoqda...";
-            
-            // Tasodifiy burchak: 4-6 marta to'liq aylanish (1440-2160 gradus) + random
-            const minRotations = 4;
-            const extraDegrees = Math.floor(Math.random() * 360);
-            const totalDegrees = (minRotations * 360) + extraDegrees;
+            infoText.innerText = "G'ildirak aylanmoqda, omad...";
 
-            // Aylantirishni boshlash
-            wheel.style.transform = `rotate(${totalDegrees}deg)`;
+            wheel.style.transition = "transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)";
+            const randomDegrees = Math.floor(Math.random() * 360) + 1440; 
+            wheel.style.transform = `rotate(${randomDegrees}deg)`;
 
-            // Animatsiya tugagach (4 soniya)
+            // 4 soniyadan keyin aylanish to'xtaydi
             setTimeout(() => {
-                infoText.innerText = "Natija aniqlandi!";
-                
-                // Telegram botiga ma'lumot yuborish
-                if (tg.initDataUnsafe) {
-                    tg.sendData(JSON.stringify({ 
-                        action: "wheel_spin", 
-                        degree: extraDegrees 
-                    }));
-                } else {
-                    console.log("Telegram muhiti topilmadi, natija yuborilmadi.");
+                // Foydalanuvchining Telegram ID sini olamiz
+                const userId = tg.initDataUnsafe?.user?.id || 0;
+
+                if (userId === 0) {
+                    infoText.innerText = "Xato: Telegram ID topilmadi!";
+                    return;
                 }
 
-                // 1 soniya kutib oynani yopish
-                setTimeout(() => {
-                    tg.close();
-                }, 1000);
+                infoText.innerText = "Natija hisoblanmoqda...";
+
+                // To'g'ridan-to'g'ri Amvera serverimizdagi FastAPI datchigiga so'rov yuboramiz
+                fetch(`/spin-reward?user_id=${userId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        infoText.innerText = data.message;
+                        // 1.5 soniyadan keyin oynani yopamiz
+                        setTimeout(() => {
+                            tg.close();
+                        }, 1500);
+                    })
+                    .catch(err => {
+                        infoText.innerText = "Tizimda xatolik yuz berdi!";
+                        setTimeout(() => tg.close(), 1500);
+                    });
+
             }, 4100);
         }
     </script>
