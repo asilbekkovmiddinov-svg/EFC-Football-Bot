@@ -20,15 +20,14 @@ def main_menu_keyboard(user_id):
     if user_id == ADMIN_ID:
         buttons.append([KeyboardButton(text="⚙️ Admin Panel")])
     return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
+
 async def handle_index_html(request):
-    """Amvera havolasiga kirganda index.html faylini foydalanuvchiga ko'rsatish funksiyasi"""
     try:
         with open("index.html", "r", encoding="utf-8") as f:
             return web.Response(text=f.read(), content_type="text/html")
-    except FileNotFoundError:
-        return web.Response(text="<h1>404: index.html fayli topilmadi!</h1>", status=404, content_type="text/html")
-
-async def main():
+    except Exception as e:
+        return web.Response(text=f"<h1>Xato: {str(e)}</h1>", status=500, content_type="text/html")
+    async def main():
     init_db()
     bot = Bot(token=BOT_TOKEN)
     dp = Dispatcher()
@@ -55,21 +54,21 @@ async def main():
     print("🚀 Bot muvaffaqiyatli ishga tushdi va barcha tizimlar ulandi!")
     await bot.delete_webhook(drop_pending_updates=True)
     
-    # Veb server va Telegram botni birga ishga tushiramiz
+    # Amvera uchun veb-serverni sozlash
     app = web.Application()
     app.router.add_get("/", handle_index_html)
     
-    # Amvera taqdim etadigan PORT orqali ishlaydi (sukut bo'yicha 80 or 8080)
+    # Amvera asosan 80-portda ishlaydi, agar xosting boshqa port bersa ham avtomatik moslashadi
     port = int(os.environ.get("PORT", 80))
     runner = web.AppRunner(app)
     await runner.setup()
-    site = web.TCPSite(runner, "0.0.0.0", port)
     
-    # Bir vaqtda ham saytni, ham bot pollingni yoqamiz
-    await asyncio.gather(
-        site.start(),
-        dp.start_polling(bot)
-    )
+    # "0.0.0.0" barcha tashqi so'rovlarni qabul qilishni ta'minlaydi
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
+    
+    # Botni doimiy eshitish rejimiga o'tkazish
+    await dp.start_polling(bot)
 
 if __name__ == "__main__":
     asyncio.run(main())
