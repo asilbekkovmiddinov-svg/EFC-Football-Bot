@@ -16,7 +16,8 @@ def init_db():
         balans_coin INTEGER DEFAULT 0,
         last_wheel_time TEXT,
         video_spins_count INTEGER DEFAULT 0,
-        last_video_spin_date TEXT
+        last_video_spin_date TEXT,
+        referred_by INTEGER DEFAULT 0
     )''')
     
     # Balans buyurtmalari (Cheklar)
