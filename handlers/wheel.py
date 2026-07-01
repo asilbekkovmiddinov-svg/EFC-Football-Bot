@@ -19,31 +19,49 @@ async def handle_mini_app_data(message: Message):
         
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
-        
         cursor.execute("SELECT last_wheel_time, video_spins_count, last_video_spin_date FROM users WHERE user_id = ?", (user_id,))
         row = cursor.fetchone()
-        last_free_time, video_count, last_video_date = row if row else (None, 0, None)
+        
+        if not row:
+            cursor.execute("INSERT INTO users (user_id, username) VALUES (?, ?)", (user_id, message.from_user.username))
+            conn.commit()
+            row = (None, 0, None)
+            
+        last_free_time, video_count, last_video_date = row
         
         if last_video_date != today_str:
             video_count = 0
 
+        # Algoritm: Bugun umuman aylantirmagan bo'lsa - bu TEKIN (Bepul) urinish bo'ladi
         is_free_spin = True
         if last_free_time:
             last_time = datetime.datetime.fromisoformat(last_free_time)
             if now.date() == last_time.date():
-                is_free_spin = False
+                is_free_spin = False # Bugun allachon aylantirgan, demak bu video urinish
 
         now_str = now.isoformat()
         if is_free_spin:
+            # Bepul urinish sifatida saqlaymiz
             cursor.execute("UPDATE users SET last_wheel_time = ? WHERE user_id = ?", (now_str, user_id))
         else:
+            # Video urinish bo'lsa - cheklovlarni tekshiramiz (Kuniga 5 marta, har 1 soatda 1 marta)
             if video_count >= 5:
                 conn.close()
-                return await message.answer("❌ Bugun barcha 5 ta video ko'rish imkoniyatingizdan foydalanib bo'ldingiz!")
+                return await message.answer("❌ Bugun barcha 5 ta video ko'rish imkoniyatingizdan foydalanib bo'ldingiz! Ertaga qayta urinib ko'ring.")
+            
+            # 1 soatlik taymerni tekshirish
+            last_time = datetime.datetime.fromisoformat(last_free_time)
+            if now - last_time < datetime.timedelta(hours=1):
+                remaining = datetime.timedelta(hours=1) - (now - last_time)
+                minutes = int(remaining.total_seconds() // 60)
+                conn.close()
+                return await message.answer(f"⏳ Video orqali aylantirish hali yopiq. Iltimos, {minutes} daqiqa kuting!")
+
             video_count += 1
             cursor.execute("UPDATE users SET video_spins_count = ?, last_video_spin_date = ?, last_wheel_time = ? WHERE user_id = ?", 
                            (video_count, today_str, now_str, user_id))
         
+        # ----------------- REJA BO'YICHA YUTUQLAR -----------------
         cursor.execute("UPDATE wheel_stats SET total_spins = total_spins + 1 WHERE id = 1")
         cursor.execute("SELECT total_spins FROM wheel_stats WHERE id = 1")
         total_spins = cursor.fetchone()
@@ -78,8 +96,8 @@ async def handle_mini_app_data(message: Message):
         spin_type_msg = "1 kunlik Bepul urinish" if is_free_spin else f"📺 Video reklama ({video_count}/5)"
         await message.answer(
             f"🎉 **G'ildirak muvaffaqiyatli aylandi!**\n\n"
-            f"ℹ️ Aylanish turi: {spin_type_msg}\n"
-            f"📊 Tizimdagi umumiy aylanishlar: {total_spins:,}\n"
+            f"ℹ️ Urinish turi: {spin_type_msg}\n"
+            f"📊 Tizimdagi jami aylanishlar: {total_spins:,}\n"
             f"🎁 Sizning yutug'ingiz: **{prize_text}**",
             parse_mode="Markdown"
         )
