@@ -10,10 +10,10 @@ from handlers import wallet, wheel, p2p, match
 logging.basicConfig(level=logging.INFO)
 
 def main_menu_keyboard(user_id):
+    # G'ildirak tugmasi matnli menyudan olib tashlandi
     buttons = [
-        [KeyboardButton(text="🧳 Balans va Hamyon"), KeyboardButton(text="🎡 Kunlik G'ildirak")],
-        [KeyboardButton(text="💱 P2P Birja"), KeyboardButton(text="⚔️ 1vs1 Match")],
-        [KeyboardButton(text="🎫 Oltin Bilet")]
+        [KeyboardButton(text="🧳 Balans va Hamyon"), KeyboardButton(text="💱 P2P Birja")],
+        [KeyboardButton(text="⚔️ 1vs1 Match"), KeyboardButton(text="🎫 Oltin Bilet")]
     ]
     if user_id == ADMIN_ID:
         buttons.append([KeyboardButton(text="⚙️ Admin Panel")])
@@ -24,12 +24,11 @@ async def main():
     bot = Bot(token=BOT_TOKEN)
     dp = Dispatcher()
     
-    # ⚠️ DIQQAT: Routerlar tartibi juda muhim! 
-    # Birinchi matnli tugmalarni tozalaydigan routerlar turishi shart
+    # Routerlarni ulash (Wheel routeri hamon faol, chunki Mini App signallari unga keladi)
     dp.include_router(wheel.router)
     dp.include_router(p2p.router)
     dp.include_router(match.router)
-    dp.include_router(wallet.router) # Wallet oxirida turishi shart!
+    dp.include_router(wallet.router)
     
     @dp.message(F.text == "/start")
     async def cmd_start(message):
@@ -39,7 +38,8 @@ async def main():
         conn.commit()
         conn.close()
         await message.answer(
-            f"👋 Salom, {message.from_user.full_name}!\neFootball EFC ekotizim botiga xush kelibsiz.",
+            f"👋 Salom, {message.from_user.full_name}!\neFootball EFC ekotizim botiga xush kelibsiz.\n\n"
+            f"🎡 Omad g'ildiragini aylantirish uchun chap pastdagi ko'k tugmani bosing!",
             reply_markup=main_menu_keyboard(message.from_user.id)
         )
 
